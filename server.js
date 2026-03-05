@@ -1,6 +1,7 @@
 const express    = require('express');
 const jwt        = require('jsonwebtoken');
 const mongoose   = require('mongoose');
+const bcrypt   = require('bcrypt');
 const User       = require('./models/User');
 const Movie      = require('./models/Movie');
 
@@ -23,11 +24,26 @@ app.get('/', (req, res) => {
 
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
-    const user = await User.findOne({ username, password });
+    console.log('Datos recibidos:', username, password); // 👈 agrega esto
+
+    // 1. Buscar solo por username
+    const user = await User.findOne({ username });
+
+    console.log('Usuario encontrado:', user); // 👈 agrega esto
 
     if (!user) {
         return res.status(401).json({ message: 'Credenciales invalidas MDFKs' });
     }
+
+    // 2. Comparar contraseña con bcrypt
+    const passwordValida = await bcrypt.compare(password, user.password);
+
+    console.log('Password valida:', passwordValida); // 👈 agrega esto
+
+    if (!passwordValida) {
+        return res.status(401).json({ message: 'Credenciales invalidas MDFKs' });
+    }
+
     const payload = { id: user._id, username: user.username, role: user.role };
     const token = jwt.sign(payload, SECRET_KEY, { expiresIn: '20m' });
     res.json({ message: 'Login exitoso MDFKs', token });
