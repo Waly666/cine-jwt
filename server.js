@@ -21,7 +21,7 @@ mongoose.connect('mongodb://localhost:27017/cineDB')
 app.get('/', (req, res) => {
     res.send('BIENVENIDO A MOVIE ON LINE MDFKs');
 });
-
+//ruta de login
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
     console.log('Datos recibidos:', username, password); // 👈 agrega esto
@@ -49,6 +49,64 @@ app.post('/login', async (req, res) => {
     res.json({ message: 'Login exitoso MDFKs', token });
 });
 
+//ruta para editar pelicula
+app.put ('/movies/edit/:id', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'admin') {
+        return res.status(403).json({ message: 'Acceso denegado, solo admins pueden editar peliculas MDFKs' });
+    }
+    const {title, director, genre} = req.body;
+    const movieActualizada = await Movie.findByIdAndUpdate(req.params.id, { title, director, genre }, { new: true }
+        
+    );
+    if (!movieActualizada){
+        return res.status(404).json({ message: 'Pelicula no encontrada MDFKs' });
+    }
+    res.json({ message: 'Pelicula actualizada exitosamente MDFKs', movie: movieActualizada });
+});
+
+//
+app.delete('/movies/delete/:id', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'admin') {
+        return res.status(403).json({ message: 'Acceso denegado, solo admins pueden eliminar peliculas MDFKs' });
+    }
+    const movieEliminada = await Movie.findByIdAndDelete(req.params.id);
+    if (!movieEliminada){
+        return res.status(404).json({ message: 'Pelicula no encontrada MDFKs' });
+    }   
+
+    res.json({ message: 'Pelicula eliminada exitosamente MDFKs', movie: movieEliminada });
+});
+
+
+
+
+
+
+
+
+
+
+
+//ruta para obtener peliculas
+app.get('/movies', authenticateToken, async (req, res) => {
+    const movies = await Movie.find();  
+    res.json({ message: 'Peliculas disponibles MDFKs', movies });
+});
+//ruta para agregar pelicula
+app.post('/movies/add', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'admin') {
+        return res.status(403).json({ message: 'Acceso denegado, solo admins pueden agregar peliculas MDFKs' });
+    }
+    const { title, director, genre } = req.body;
+    const newMovie = new Movie({ title, director, genre });
+    await newMovie.save();
+    res.json({ message: 'Pelicula agregada exitosamente MDFKs', movie: newMovie });
+});
+//
+app.get('/profile', authenticateToken, (req, res) => {
+    res.json({ perfil: req.user });
+});
+//middleware para autenticar token
 function authenticateToken(req, res, next) {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
@@ -65,26 +123,6 @@ function authenticateToken(req, res, next) {
         next();
     });
 }
-
-app.get('/movies', authenticateToken, async (req, res) => {
-    const movies = await Movie.find();  
-    res.json({ message: 'Peliculas disponibles MDFKs', movies });
-});
-
-app.post('/movies/add', authenticateToken, async (req, res) => {
-    if (req.user.role !== 'admin') {
-        return res.status(403).json({ message: 'Acceso denegado, solo admins pueden agregar peliculas MDFKs' });
-    }
-    const { title, director, genre } = req.body;
-    const newMovie = new Movie({ title, director, genre });
-    await newMovie.save();
-    res.json({ message: 'Pelicula agregada exitosamente MDFKs', movie: newMovie });
-});
-
-app.get('/profile', authenticateToken, (req, res) => {
-    res.json({ perfil: req.user });
-});
-
 app.listen(3000, () => {
     console.log('Servidor escuchando en el puerto 3000');
 });
