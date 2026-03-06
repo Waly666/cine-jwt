@@ -46,72 +46,94 @@ El servidor escucha por defecto en el puerto `3000`.
 - [models/Movie.js](models/Movie.js#L1-L400) — esquema `Movie` (title, director, genre).
 - [seed.js](seed.js#L1-L400) — script para poblar la base de datos con usuarios y películas de ejemplo.
 - [test-bcrypt.js](test-bcrypt.js#L1-L400) — pequeña prueba de `bcrypt` contra la BD.
+- [server.js](server.js#L1-L400) — servidor y punto de entrada.
+- [routes/auth.routes.js](routes/auth.routes.js#L1-L50) — rutas de autenticación (`/auth`).
+- [routes/movie.routes.js](routes/movie.routes.js#L1-L80) — rutas de películas (`/movies`).
+- [routes/user.routes.js](routes/user.routes.js#L1-L80) — rutas de usuarios (`/users`).
+- [controllers/*](controllers) — lógica por recurso (`auth`, `movie`, `user`).
+- [services/*](services) — capa de servicios que interactúa con los modelos.
+- [models/User.js](models/User.js#L1-L50) — esquema `User` (username, password, role).
+- [models/Movie.js](models/Movie.js#L1-L50) — esquema `Movie` (title, director, genre).
+- [seed.js](seed.js#L1-L400) — script para poblar la base de datos con usuarios y películas de ejemplo.
+- [test-bcrypt.js](test-bcrypt.js#L1-L400) — pequeña prueba de `bcrypt` contra la BD.
 
 ---
 
 **Variables / secretos**
 
-Actualmente las claves (`SECRET_KEY`, `REFRESH_SECRET_KEY`) y la URL de MongoDB están hardcodeadas en `server.js`. Se recomienda moverlas a variables de entorno, por ejemplo:
+El proyecto ahora usa `dotenv` y variables de entorno. Crea un archivo `.env` en la raíz con al menos estas variables:
 
-```powershell
-set SECRET_KEY=tu_clave
-set REFRESH_SECRET_KEY=tu_refresh_clave
-set MONGO_URL=mongodb://localhost:27017/cineDB
+```dotenv
+PORT=3000
+MONGO_URI=mongodb://localhost:27017/cineDB
+SECRET_KEY=tu_clave_secreta
+REFRESH_SECRET_KEY=tu_clave_refresh
 ```
+
+Evita subir `.env` a repositorios públicos. Agrega `.env` a `.gitignore` si es necesario.
 
 ---
 
 **Rutas principales (resumen CRUD y autenticación)**
 
-Autenticación / usuarios:
+El servidor expone rutas organizadas por prefijo.
 
-- POST /register — Registrar usuario. Body: `{ "username": "...", "password": "...", "role": "user|admin" }`.
-- POST /login — Login. Body: `{ "username": "...", "password": "..." }`. Responde `accessToken` y `refreshToken`.
-- POST /refresh — Intercambia `refreshToken` por un nuevo `accessToken`. Body: `{ "refreshToken": "..." }`.
-- GET /profile — Devuelve el perfil del usuario autenticado. (Authorization: `Bearer <accessToken>`)
+Prefijos:
+- `/auth` — Autenticación
+- `/users` — Gestión de usuarios
+- `/movies` — Gestión de películas
 
-Usuarios (requieren token y role `admin` para ciertas acciones):
+Autenticación:
 
-- GET /users — Lista usuarios (admin).
-- PUT /users/edit/:id — Edita usuario (admin). Body posible: `{ "username": "...", "password": "...", "role": "..." }`.
-- DELETE /users/delete/:id — Elimina usuario (admin).
+- POST `/auth/login` — Login. Body: `{ "username": "...", "password": "..." }`. Responde `accessToken` y `refreshToken`.
+- POST `/auth/refresh` — Intercambia `refreshToken` por un nuevo `accessToken`. Body: `{ "refreshToken": "..." }`.
+
+Usuarios:
+
+- POST `/users/register` — Registrar usuario. Body: `{ "username": "...", "password": "...", "role": "user|admin" }`.
+- GET `/users/` — Lista usuarios (requiere token y role `admin`).
+- PUT `/users/edit/:id` — Edita usuario (requiere `admin`).
+- DELETE `/users/delete/:id` — Elimina usuario (requiere `admin`).
 
 Películas:
 
-- GET /movies — Lista películas (requiere token).
-- POST /movies/add — Agrega película (admin). Body: `{ "title": "...", "director": "...", "genre": "..." }`.
-- PUT /movies/edit/:id — Edita película (admin). Body: `{ "title": "...", "director": "...", "genre": "..." }`.
-- DELETE /movies/delete/:id — Elimina película (admin).
+- GET `/movies/` — Lista películas (requiere token autenticado).
+- POST `/movies/add` — Agrega película (requiere `admin`). Body: `{ "title": "...", "director": "...", "genre": "..." }`.
+- PUT `/movies/edit/:id` — Edita película (requiere `admin`).
+- DELETE `/movies/delete/:id` — Elimina película (requiere `admin`).
 
-Notas: todas las rutas que requieren autenticación usan el middleware `authenticateToken` en [server.js](server.js#L1-L400). Para rutas con restricción `admin`, el middleware verifica `req.user.role`.
+Autenticación y autorización:
+
+- El middleware `authenticateToken` valida `accessToken` (ver [middlewares/auth.middleware.js](middlewares/auth.middleware.js#L1-L100)).
+- El middleware `isAdmin` verifica `req.user.role === 'admin'` para rutas protegidas (ver [middlewares/auth.middleware.js](middlewares/auth.middleware.js#L1-L100)).
 
 ---
 
 **Ejemplos rápidos (curl)**
 
-1. Registrar:
+1) Registrar (POST `/users/register`):
 
 ```bash
-curl -X POST http://localhost:3000/register \
+curl -X POST http://localhost:3000/users/register \
 	-H "Content-Type: application/json" \
 	-d '{"username":"nuevo","password":"pass123","role":"user"}'
 ```
 
-2. Login:
+2) Login (POST `/auth/login`):
 
 ```bash
-curl -X POST http://localhost:3000/login \
+curl -X POST http://localhost:3000/auth/login \
 	-H "Content-Type: application/json" \
 	-d '{"username":"walter","password":"WALTER123"}'
 ```
 
-3. Usar `accessToken` para obtener películas:
+3) Obtener películas (GET `/movies/`):
 
 ```bash
 curl -H "Authorization: Bearer <ACCESS_TOKEN>" http://localhost:3000/movies
 ```
 
-4. Agregar película (admin):
+4) Agregar película (POST `/movies/add`, admin):
 
 ```bash
 curl -X POST http://localhost:3000/movies/add \
