@@ -1,7 +1,7 @@
 {
   "name": "cine-jwt",
   "version": "1.0.0",
-  "description": "",
+  "description": "Proyecto sencillo de ejemplo para gestionar autenticación con JWT en un servidor Node.js.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -16,5 +16,14 @@
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.2.4"
-  }
+  },
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Waly666/cine-jwt.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Waly666/cine-jwt/issues"
+  },
+  "homepage": "https://github.com/Waly666/cine-jwt#readme"
 }
